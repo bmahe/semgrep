@@ -93,9 +93,9 @@ let hook_function_taint_signature = ref None
 let union_env = Dataflow_core.varmap_union Taints.union
 let union_taint_var_env (t1, v1) (t2, v2) = (Taints.union t1 t2, union_env v1 v2)
 
-let union_map_taint_var_env f xs =
+let union_map_taint_var_env ~var_env f xs =
   xs |> Common.map f
-  |> List.fold_left union_taint_var_env (Taints.empty, VarMap.empty)
+  |> List.fold_left union_taint_var_env (Taints.empty, var_env)
 
 (* Debug *)
 let _show_env =
@@ -193,12 +193,14 @@ let add_taint_to_var_in_env var_env var taints =
     if Parse_info.is_fake var_tok then taints
     else taints |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
   in
-  VarMap.update (str_of_name var)
-    (function
-      | None -> Some taints
-      (* THINK: couldn't we just replace the existing taints? *)
-      | Some taints' -> Some (Taints.union taints taints'))
-    var_env
+  if Taints.is_empty taints then var_env
+  else
+    VarMap.update (str_of_name var)
+      (function
+        | None -> Some taints
+        (* THINK: couldn't we just replace the existing taints? *)
+        | Some taints' -> Some (Taints.union taints taints'))
+      var_env
 
 (* Test whether a variable occurrence is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
@@ -271,8 +273,11 @@ let rec check_tainted_expr env exp : Taints.t * var_env =
         (Taints.empty, env.var_env)
     | Composite (_, (_, es, _))
     | Operator (_, es) ->
-        union_map_taint_var_env check es
-    | Record fields -> union_map_taint_var_env (fun (_, e) -> check e) fields
+        union_map_taint_var_env ~var_env:env.var_env check es
+    | Record fields ->
+        union_map_taint_var_env ~var_env:env.var_env
+          (fun (_, e) -> check e)
+          fields
     | Cast (_, e) -> check e
   in
   let sanitizer_pms = orig_is_sanitized env.config exp.eorig in
@@ -373,9 +378,7 @@ let check_tainted_instr env instr : T.taints * var_env =
         let args_taints, var_envs_args =
           Common.map check_expr args |> List.split
         in
-        let var_env' =
-          List.fold_left union_env VarMap.empty (var_env_e :: var_envs_args)
-        in
+        let var_env' = List.fold_left union_env var_env_e var_envs_args in
         match check_function_signature env e args_taints with
         | Some call_taints -> (call_taints, var_env')
         | None ->
@@ -386,7 +389,8 @@ let check_tainted_instr env instr : T.taints * var_env =
               |> Taints.union e_taints
             in
             (taints, var_env'))
-    | CallSpecial (_, _, args) -> union_map_taint_var_env check_expr args
+    | CallSpecial (_, _, args) ->
+        union_map_taint_var_env ~var_env:env.var_env check_expr args
     | FixmeInstr _ -> (Taints.empty, env.var_env)
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in
