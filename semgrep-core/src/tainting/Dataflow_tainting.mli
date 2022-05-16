@@ -1,10 +1,12 @@
 type var = Dataflow_core.var
 (** A string of the form "<source name>:<sid>". *)
 
+type overlap = float
+
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
   rule_id : string;  (** Taint rule id, for Deep Semgrep. *)
-  is_source : AST_generic.any -> Pattern_match.t list;
+  is_source : AST_generic.any -> (Pattern_match.t * overlap) list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)
   is_sink : AST_generic.any -> Pattern_match.t list;
