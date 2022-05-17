@@ -4,6 +4,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- taint-mode: Let's say that e.g. `taint(x)` makes `x` tainted by side-effect.
+  Previously, we had to rely on a trick that declared that _any_ occurrence of
+  `x` inside `taint(x); ...` was as taint source. If `x` was overwriten with
+  safe data, this was not recognized by the taint engine. Also, if `taint(x)`
+  occurred inside e.g. an `if` block, any occurrence of `x` outside that block
+  was not considered tainted. Now, if you specify that the code variable itself
+  is a taint source, the taint engine will handle this as expected and it will
+  not suffer from the aforementioned limitations. We believe that this change
+  should not break existing taint rules, but please report any regressions that
+  you may find.
+
 ## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
 
 ### Added
