@@ -18,6 +18,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   report.
 - Licensing: The ocaml-tree-sitter-core component is now distributed
   under the terms of the LGPL 2.1, rather than previously GPL 3.
+- The dot access ellipsis now matches field accesses in addition to method
+  calls.
 
 ### Fixed
 
