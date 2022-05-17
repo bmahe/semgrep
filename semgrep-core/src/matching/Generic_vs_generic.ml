@@ -126,15 +126,21 @@ let rec obj_and_method_calls_of_expr e =
   match e.G.e with
   | B.Call ({ e = B.DotAccess (e, tok, fld); _ }, args) ->
       let o, xs = obj_and_method_calls_of_expr e in
-      (o, (fld, tok, args) :: xs)
+      (o, (fld, tok, Some args) :: xs)
+  | B.DotAccess (e, tok, fld) ->
+      let o, xs = obj_and_method_calls_of_expr e in
+      (o, (fld, tok, None) :: xs)
   | _ -> (e, [])
 
 let rec expr_of_obj_and_method_calls (obj, xs) =
   match xs with
   | [] -> obj
-  | (fld, tok, args) :: xs ->
+  | (fld, tok, Some args) :: xs ->
       let e = expr_of_obj_and_method_calls (obj, xs) in
       B.Call (B.DotAccess (e, tok, fld) |> G.e, args) |> G.e
+  | (fld, tok, None) :: xs ->
+      let e = expr_of_obj_and_method_calls (obj, xs) in
+      B.DotAccess (e, tok, fld) |> G.e
 
 let rec all_suffix_of_list xs =
   xs
