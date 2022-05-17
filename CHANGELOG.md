@@ -20,6 +20,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   not suffer from the aforementioned limitations. We believe that this change
   should not break existing taint rules, but please report any regressions that
   you may find.
+- The dot access ellipsis now matches field accesses in addition to method
+  calls.
 
 ### Fixed
 
